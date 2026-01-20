@@ -10,17 +10,35 @@ interface Key {
 
 const Piano = () => {
   const [activeKey, setActiveKey] = useState<string | null>(null);
+  const [scale, setScale] = useState(1);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const pianoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Initialize AudioContext on mount
     audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
 
+    // Handle responsive scaling
+    const handleResize = () => {
+      if (pianoRef.current) {
+        const containerWidth = window.innerWidth - 32; // Account for padding
+        const pianoWidth = 896; // 14 white keys * 64px
+        const calculatedScale = Math.min(containerWidth / pianoWidth, 1);
+        setScale(calculatedScale);
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+
     return () => {
-      // Clean up AudioContext on unmount
+      // Clean up
       if (audioContextRef.current) {
         audioContextRef.current.close();
       }
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
     };
   }, []);
 
@@ -52,10 +70,19 @@ const Piano = () => {
     { note: "B5", frequency: 987.77, type: "white" },
   ];
 
-  const playNote = (frequency: number, note: string) => {
+  const playNote = (frequency: number, note: string, event?: React.MouseEvent | React.TouchEvent) => {
+    if (event) {
+      event.preventDefault();
+    }
+
     if (!audioContextRef.current) return;
 
     const audioContext = audioContextRef.current;
+
+    // Resume audio context if suspended (required for iOS)
+    if (audioContext.state === 'suspended') {
+      audioContext.resume();
+    }
 
     // Create oscillator
     const oscillator = audioContext.createOscillator();
@@ -94,24 +121,32 @@ const Piano = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100 dark:from-gray-900 dark:to-purple-900 p-8">
-      <div className="mb-8 text-center">
-        <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100 dark:from-gray-900 dark:to-purple-900 p-2 sm:p-4 md:p-8 overflow-x-hidden">
+      <div className="mb-4 md:mb-8 text-center px-2">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-2 md:mb-4">
           Virtual Piano
         </h1>
-        <p className="text-lg text-gray-600 dark:text-gray-300">
-          Click on any key to play its note
+        <p className="text-sm sm:text-base md:text-lg text-gray-600 dark:text-gray-300">
+          {scale < 0.6 ? "Tap" : "Click"} on any key to play its note
         </p>
       </div>
 
-      <div className="relative bg-gradient-to-b from-amber-900 to-amber-950 p-8 rounded-lg shadow-2xl">
+      <div
+        ref={pianoRef}
+        className="relative bg-gradient-to-b from-amber-900 to-amber-950 p-3 sm:p-4 md:p-8 rounded-lg shadow-2xl"
+        style={{
+          transform: `scale(${scale})`,
+          transformOrigin: 'top center',
+        }}
+      >
         <div className="relative flex">
           {/* White Keys */}
           {whiteKeys.map((key) => (
             <button
               key={key.note}
-              onClick={() => playNote(key.frequency, key.note)}
-              className={`relative w-16 h-64 bg-white border-2 border-gray-800 rounded-b-lg transition-all duration-100 hover:bg-gray-100 active:bg-gray-300 ${
+              onClick={(e) => playNote(key.frequency, key.note, e)}
+              onTouchStart={(e) => playNote(key.frequency, key.note, e)}
+              className={`relative w-16 h-64 bg-white border-2 border-gray-800 rounded-b-lg transition-all duration-100 hover:bg-gray-100 active:bg-gray-300 touch-none select-none ${
                 activeKey === key.note ? "bg-gray-300 scale-95" : ""
               }`}
               style={{
@@ -119,8 +154,9 @@ const Piano = () => {
                   ? "inset 0 4px 6px rgba(0,0,0,0.3)"
                   : "0 4px 6px rgba(0,0,0,0.3)",
               }}
+              aria-label={`Play ${key.note}`}
             >
-              <span className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 font-semibold">
+              <span className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 font-semibold pointer-events-none">
                 {key.note}
               </span>
             </button>
@@ -131,8 +167,9 @@ const Piano = () => {
             {blackKeys.map((key) => (
               <button
                 key={key.note}
-                onClick={() => playNote(key.frequency, key.note)}
-                className={`absolute w-10 h-40 bg-gradient-to-b from-gray-900 to-black border-2 border-black rounded-b-lg transition-all duration-100 hover:from-gray-800 active:from-gray-700 pointer-events-auto ${
+                onClick={(e) => playNote(key.frequency, key.note, e)}
+                onTouchStart={(e) => playNote(key.frequency, key.note, e)}
+                className={`absolute w-10 h-40 bg-gradient-to-b from-gray-900 to-black border-2 border-black rounded-b-lg transition-all duration-100 hover:from-gray-800 active:from-gray-700 pointer-events-auto touch-none select-none ${
                   activeKey === key.note ? "from-gray-700 scale-95" : ""
                 }`}
                 style={{
@@ -142,8 +179,9 @@ const Piano = () => {
                     : "0 4px 6px rgba(0,0,0,0.5)",
                   zIndex: 10,
                 }}
+                aria-label={`Play ${key.note}`}
               >
-                <span className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs text-white font-semibold">
+                <span className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs text-white font-semibold pointer-events-none">
                   {key.note}
                 </span>
               </button>
@@ -152,15 +190,21 @@ const Piano = () => {
         </div>
       </div>
 
-      <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 max-w-2xl">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+      <div
+        className="mt-4 md:mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 md:p-6 max-w-2xl mx-2"
+        style={{
+          transform: scale < 0.8 ? `scale(${Math.max(scale * 1.2, 0.85)})` : 'none',
+          transformOrigin: 'top center',
+        }}
+      >
+        <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-2 md:mb-3">
           How to Use
         </h3>
-        <ul className="space-y-2 text-gray-700 dark:text-gray-300">
-          <li>• Click on any key to play its musical note</li>
-          <li>• White keys represent natural notes (C, D, E, F, G, A, B)</li>
-          <li>• Black keys represent sharp/flat notes (C#, D#, F#, G#, A#)</li>
-          <li>• The piano spans 2 octaves from C4 to B5</li>
+        <ul className="space-y-1 md:space-y-2 text-sm md:text-base text-gray-700 dark:text-gray-300">
+          <li>• {scale < 0.6 ? "Tap" : "Click"} on any key to play its musical note</li>
+          <li>• White keys: natural notes (C, D, E, F, G, A, B)</li>
+          <li>• Black keys: sharp/flat notes (C#, D#, F#, G#, A#)</li>
+          <li>• Piano spans 2 octaves from C4 to B5</li>
         </ul>
       </div>
     </div>
