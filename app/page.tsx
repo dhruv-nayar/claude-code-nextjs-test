@@ -17,13 +17,13 @@ export default function Home() {
 
   useEffect(() => {
     // Check backend health
-    fetch("http://localhost:8000/api/health")
+    fetch("/api/health")
       .then((res) => res.json())
       .then((data) => setBackendStatus(data.status))
       .catch(() => setBackendStatus("offline"));
 
-    // Fetch items from FastAPI backend
-    fetch("http://localhost:8000/api/items")
+    // Fetch items from Next.js API routes
+    fetch("/api/items")
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch items");
         return res.json();
@@ -43,7 +43,7 @@ export default function Home() {
       <main className="max-w-4xl mx-auto">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 mb-8">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Next.js + FastAPI Demo
+            Next.js API Routes Demo
           </h1>
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -63,7 +63,7 @@ export default function Home() {
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">
-            Items from FastAPI Backend
+            Items from Next.js API Routes
           </h2>
 
           {loading && (
@@ -81,7 +81,7 @@ export default function Home() {
                 Error: {error}
               </p>
               <p className="text-sm text-red-600 dark:text-red-400 mt-2">
-                Make sure the FastAPI backend is running on http://localhost:8000
+                Unable to connect to API routes
               </p>
             </div>
           )}
@@ -119,22 +119,27 @@ export default function Home() {
           <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
             <li>
               <code className="bg-gray-100 dark:bg-gray-900 px-2 py-1 rounded">
-                GET http://localhost:8000/api/health
+                GET /api/health
               </code>
             </li>
             <li>
               <code className="bg-gray-100 dark:bg-gray-900 px-2 py-1 rounded">
-                GET http://localhost:8000/api/items
+                GET /api/items
               </code>
             </li>
             <li>
               <code className="bg-gray-100 dark:bg-gray-900 px-2 py-1 rounded">
-                GET http://localhost:8000/api/items/:id
+                GET /api/items/:id
               </code>
             </li>
             <li>
               <code className="bg-gray-100 dark:bg-gray-900 px-2 py-1 rounded">
-                POST http://localhost:8000/api/items
+                POST /api/items
+              </code>
+            </li>
+            <li>
+              <code className="bg-gray-100 dark:bg-gray-900 px-2 py-1 rounded">
+                POST /api/message
               </code>
             </li>
           </ul>
